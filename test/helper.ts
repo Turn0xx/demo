@@ -1,15 +1,9 @@
-import { FastifyInstance, InjectOptions } from 'fastify'
+import { FastifyInstance } from 'fastify'
 import { build as buildApplication } from 'fastify-cli/helper.js'
 import path from 'node:path'
 import { TestContext } from 'node:test'
 import { options as serverOptions } from '../src/app.js'
-
-declare module 'fastify' {
-  interface FastifyInstance {
-    login: typeof login;
-    injectWithLogin: typeof injectWithLogin;
-  }
-}
+import { login, injectWithLogin } from './auth.fixture.js'
 
 const AppPath = path.join(import.meta.dirname, '../src/app.ts')
 
@@ -19,44 +13,6 @@ export function config () {
   return {
     skipOverride: 'true' // Register our application with fastify-plugin
   }
-}
-
-async function login (this: FastifyInstance, username: string) {
-  const res = await this.inject({
-    method: 'POST',
-    url: '/api/auth/login',
-    payload: {
-      username,
-      password: 'password123$'
-    }
-  })
-
-  const cookie = res.cookies.find(
-    (c) => c.name === this.config.COOKIE_NAME
-  )
-
-  if (!cookie) {
-    throw new Error('Failed to retrieve session cookie.')
-  }
-
-  return cookie.value
-}
-
-async function injectWithLogin (
-  this: FastifyInstance,
-  username: string,
-  opts: InjectOptions
-) {
-  const cookieValue = await this.login(username)
-
-  opts.cookies = {
-    ...opts.cookies,
-    [this.config.COOKIE_NAME]: cookieValue
-  }
-
-  return this.inject({
-    ...opts
-  })
 }
 
 // automatically build and tear down our instance
